@@ -20,31 +20,15 @@ type
     FFeatureLevel: TD3D_FEATURE_LEVEL;
     FOutput: TDXGI_OUTPUT_DESC;
     FDuplicate: IDXGIOutputDuplication;
-    FFrames: UInt64;
-    FStartTime: Double;
-
-    function GetFPS: Int32;
   public
     property Error: HRESULT read FError;
-    property Frames: UInt64 read FFrames;
-    property FPS: Int32 read GetFPS;
 
-    procedure Capture(Buffer: Pointer);
+    function Capture(Buffer: Pointer): Boolean;
 
     constructor Create;
   end;
 
 implementation
-
-function PerformanceTimer: Double;
-var
-  frequency, counter: Int64;
-begin
-  if QueryPerformanceFrequency(frequency) and QueryPerformanceCounter(counter) then
-    Result := counter / frequency * 1000
-  else
-    Result := GetTickCount();
-end;
 
 constructor TDesktopDuplicationWrapper.Create;
 var
@@ -92,15 +76,7 @@ begin
     Exit;
 end;
 
-function TDesktopDuplicationWrapper.GetFPS: Int32;
-begin
-  if (FStartTime = 0) then
-    FStartTime := PerformanceTimer()
-  else
-    Result := Round(1000 / ((PerformanceTimer() - FStartTime) / FFrames));
-end;
-
-procedure TDesktopDuplicationWrapper.Capture(Buffer: Pointer);
+function TDesktopDuplicationWrapper.Capture(Buffer: Pointer): Boolean;
 var
   FrameInfo: TDXGI_OUTDUPL_FRAME_INFO;
   Resource: IDXGIResource;
@@ -130,21 +106,20 @@ var
   end;
 
 begin
-  FError := FDuplicate.AcquireNextFrame(16, FrameInfo, Resource);
+  FError := FDuplicate.AcquireNextFrame(10, FrameInfo, Resource);
+  if Failed(FError) then
+    Exit(False);
 
-  if Succeeded(FError) then
+  Result := (FrameInfo.TotalMetadataBufferSize > 0) and (FrameInfo.LastPresentTime.HighPart > 0); // no mouse updates
+
+  if Result then
   begin
-    if (FrameInfo.TotalMetadataBufferSize > 0) and (FrameInfo.LastPresentTime.HighPart > 0) then // no to mouse updates.
-    begin
-      Resource.QueryInterface(IID_ID3D11Texture2D, Texture);
+    Resource.QueryInterface(IID_ID3D11Texture2D, Texture);
 
-      UpdateBuffer();
-
-      Inc(FFrames);
-    end;
-
-    FDuplicate.ReleaseFrame();
+    UpdateBuffer();
   end;
+
+  FDuplicate.ReleaseFrame();
 end;
 
 end.

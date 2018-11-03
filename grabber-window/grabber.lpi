@@ -37,24 +37,21 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="grabber"/>
+      <Filename Value="grabber-window"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="headers"/>
+      <OtherUnitFiles Value="..\headers;.."/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>
       <RelocatableUnit Value="True"/>
+      <Checks>
+        <RangeChecks Value="True"/>
+      </Checks>
       <TargetCPU Value="i386"/>
-      <Optimizations>
-        <OptimizationLevel Value="3"/>
-      </Optimizations>
     </CodeGeneration>
     <Linking>
-      <Debugging>
-        <GenerateDebugInfo Value="False"/>
-      </Debugging>
       <Options>
         <ExecutableType Value="Library"/>
       </Options>

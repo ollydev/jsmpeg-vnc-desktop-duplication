@@ -3,24 +3,25 @@ library grabber;
 {$mode objfpc}{$H+}
 
 uses
-  classes, desktopduplication, windows, syncobjs, sysutils;
+  classes, desktopduplication, windows;
 
 var
   Wrapper: TDesktopDuplicationWrapper;
 
-procedure grabber_grab(Buffer: Pointer; Width, Height: Int32); cdecl;
+function grabber_grab(Window: HWND; Buffer: Pointer; Width, Height: Int32): Int32; cdecl;
 begin
-  Wrapper.Capture(Buffer);
+  Result := 0;
 
-  // WriteLn('Desktop Duplication FPS: ', Wrapper.FPS);
+  if Wrapper.Capture(Buffer) then
+    Result := 1;
 end;
 
 procedure grabber_create(Window: HWND; var Width, Height: Int32); cdecl;
 begin
+  Wrapper := TDesktopDuplicationWrapper.Create();
+
   Width := GetSystemMetrics(SM_CXSCREEN);
   Height := GetSystemMetrics(SM_CYSCREEN);
-
-  Wrapper := TDesktopDuplicationWrapper.Create();
 end;
 
 procedure grabber_destroy; cdecl;
@@ -33,6 +34,8 @@ exports grabber_destroy;
 exports grabber_grab;
 
 begin
+  WriteLn('Using desktop duplication grabber (desktop mode)');
+  WriteLn('');
 end.
 
 
