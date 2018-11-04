@@ -14,6 +14,7 @@ var
 
 var
   Desktop: record
+    Handle: HWND;
     Buffer: PRGB32;
     Width: Int32;
     Height: Int32;
@@ -32,7 +33,7 @@ begin
   ClientToScreen(Window, Result.BottomRight);
 end;
 
-function grabber_grab(Window: HWND; Buffer: PRGB32; Width, Height: Int32): Int32; cdecl;
+function grab_window(Window: HWND; Buffer: PRGB32; Width, Height: Int32): Int32; cdecl;
 var
   Rect: TRect;
   Y: Int32;
@@ -59,20 +60,46 @@ begin
   end;
 end;
 
+function grab_desktop(Window: HWND; Buffer: PRGB32; Width, Height: Int32): Int32;
+begin
+  Result := 0;
+
+  if Wrapper.Capture(Buffer) then
+    Result := 1;
+end;
+
+function grabber_grab(Window: HWND; Buffer: PRGB32; Width, Height: Int32): Int32; cdecl;
+begin
+  if (Window = Desktop.Handle) then
+    Result := grab_desktop(Window, Buffer, Width, Height)
+  else
+    Result := grab_window(Window, Buffer, Width, Height);
+end;
+
 procedure grabber_create(Window: HWND; var Width, Height: Int32); cdecl;
 var
   Rect: TRect;
 begin
-  Rect := GetWindowRect(Window);
-
-  Width := Rect.Width;
-  Height := Rect.Height;
-
   Wrapper := TDesktopDuplicationWrapper.Create();
+  if Failed(Wrapper.Error) then
+    WriteLn('Desktop duplication creation failed: ', Wrapper.Error);
 
   Desktop.Width := GetSystemMetrics(SM_CXSCREEN);
   Desktop.Height := GetSystemMetrics(SM_CYSCREEN);
   Desktop.Buffer := GetMemory(Desktop.Width * Desktop.Height * 4);
+  Desktop.Handle := GetDesktopWindow();
+
+  if (Window = Desktop.Handle) then
+  begin
+    Width := Desktop.Width;
+    Height := Desktop.Height;
+  end else
+  begin
+    Rect := GetWindowRect(Window);
+
+    Width := Rect.Width;
+    Height := Rect.Height;
+  end;
 end;
 
 procedure grabber_destroy; cdecl;
@@ -87,7 +114,7 @@ exports grabber_destroy;
 exports grabber_grab;
 
 begin
-  WriteLn('Using desktop duplication grabber (window mode)');
+  WriteLn('Using desktop duplication grabber.');
   WriteLn('');
 end.
 
