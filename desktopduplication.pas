@@ -82,7 +82,7 @@ var
   Resource: IDXGIResource;
   Texture: ID3D11Texture2D;
 
-  procedure UpdateBuffer;
+  function UpdateBuffer: Boolean;
   var
     Desc: TD3D11_TEXTURE2D_DESC;
     Copy: ID3D11Texture2D;
@@ -97,29 +97,30 @@ var
 
     FError := FDevice.CreateTexture2D(@Desc, nil, Copy);
     if Failed(FError) then
-      Exit;
+      Exit(False);
 
     FContext.CopyResource(Copy, Texture);
     FContext.Map(Copy, 0, D3D11_MAP_READ_WRITE, 0, Resource);
 
     Move(Resource.PData^, Buffer^, Desc.Width * Desc.Height * 4);
+
+    Exit(True);
   end;
 
 begin
   FError := FDuplicate.AcquireNextFrame(10, FrameInfo, Resource);
-  if Failed(FError) then
-    Exit(False);
 
-  Result := (FrameInfo.TotalMetadataBufferSize > 0) and (FrameInfo.LastPresentTime.HighPart > 0); // no mouse updates
-
-  if Result then
+  if Succeeded(FError) then
   begin
-    Resource.QueryInterface(IID_ID3D11Texture2D, Texture);
+    if (FrameInfo.TotalMetadataBufferSize > 0) then
+    begin
+      Resource.QueryInterface(IID_ID3D11Texture2D, Texture);
 
-    UpdateBuffer();
+      Result := UpdateBuffer();
+    end;
+
+    FDuplicate.ReleaseFrame();
   end;
-
-  FDuplicate.ReleaseFrame();
 end;
 
 end.
